@@ -1,5 +1,6 @@
 import copy
 import tkinter as tk
+from tkinter import colorchooser
 from game.board import Board
 
 
@@ -22,7 +23,13 @@ class LifeGame:
                     count = self.board.countAroundAliveAt(row, col)
                     self.board.setNextStatAt(row, col, count == 2 or count == 3)
                 else:
-                    self.board.setNextStatAt(row, col, self.board.countAroundAliveAt(row, col) == 3)
+                    count = self.board.countAroundAliveAt(row, col)
+                    if count == 3:
+                        # 誕生
+                        self.board.setColorDataAt(row, col, self.board.getAroundAverageColor(row, col))
+                        self.board.setNextStatAt(row, col, True)
+                    else:
+                        self.board.setNextStatAt(row, col, False)
         self.board.step()
 
 
@@ -55,8 +62,11 @@ class GUI:
         self.autoMode_period = 333
         self.autoButton = tk.Button(self.app, text=self.BUTTON_AUTORUN_TEXT_OFF, width=15, height=1, command=self.clickAutoButton)
         self.autoButton.place(x=width, y=40)
-        self.SpeedScale = tk.Scale(self.app, from_=1, to=10, orient=tk.HORIZONTAL, command=self.onSpeedScaleChanged)
+        self.SpeedScale = tk.Scale(self.app, from_=1, to=15, orient=tk.HORIZONTAL, command=self.onSpeedScaleChanged)
         self.SpeedScale.place(x=width + 128, y=28)
+        self.color = [255, 0, 0]
+        self.colorButton = tk.Button(self.app, text="色", width=15, height=1, command=self.clickColorButton)
+        self.colorButton.place(x=width, y=80)
         # Canvas
         self.canvas = tk.Canvas(self.app, width=width, height=height, bg="white", highlightthickness=0)
         self.canvas.place(x=0, y=0)
@@ -81,10 +91,12 @@ class GUI:
         if col >= self.lifegame.board.COL: col = self.lifegame.board.COL
         celltag = self.colmToTag(row, col)
 
+        self.lifegame.board.setColorDataAt(row, col, self.color)
         self.lifegame.board.reverseAliveAt(row, col)
 
     def onCellChange(self, row: int, col: int):
-        fill = "red" if self.lifegame.board.cells[row][col].isAlive() else "white"
+        cell = self.lifegame.board.cells[row][col]
+        fill = cell.getColorCode() if cell.isAlive() else "white"
         self.canvas.itemconfig(self.colmToTag(row, col), fill=fill)
 
     # callbackTask
@@ -108,3 +120,8 @@ class GUI:
     # SpeedScale
     def onSpeedScaleChanged(self, scale_val):
         self.autoMode_period = int(1000 / int(scale_val))
+    # colorButton
+    def clickColorButton(self):
+        color = colorchooser.askcolor()
+        if color[0] is not None:
+            self.color = [int(color[0][0]), int(color[0][1]), int(color[0][2])]
